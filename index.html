@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<title>美食賽車</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0f0f1e;color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
+#app{position:relative;width:100%;height:100%}
+canvas{width:100%;height:100%;object-fit:contain;display:block;touch-action:none}
+.ov{position:absolute;inset:0;background:#1a1a2ef2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;overflow:auto}
+.ov.hide{display:none}
+#sheet{justify-content:flex-start}
+button{font-size:20px;padding:12px 30px;border:0;border-radius:12px;background:#ff8a3d;color:#fff}
+button.s{background:#3b3b63}
+h1{margin:0;font-size:34px}
+h3{margin:14px 0 4px;color:#ff8a3d;text-align:left;width:100%}
+.r{display:flex;justify-content:space-between;width:100%;padding:6px 4px;border-bottom:1px solid #fff2;font-size:17px}
+.w{width:100%;max-width:360px}
+</style></head>
+<body><div id="app">
+<canvas id="c" width="360" height="640"></canvas>
+<div class="ov" id="menu"><h1>🏎️ 美食賽車</h1><p>點左/右半邊或滑動換車道<br>吃美食加分，閃開路障<br>看到單字閘門，開進正確中文！</p>
+<div>🏆 最高里程 <b id="best">0</b> m</div>
+<button id="go">開始</button><button class="s" id="sh">📖 點餐小抄</button></div>
+<div class="ov hide" id="sheet"></div>
+<div class="ov hide" id="over"></div>
+<div class="ov hide" id="pause"><h1>⏸ 暫停</h1><button id="res">繼續</button></div>
+</div>
+<script>
+// 單字庫：英文|中文|emoji|分類
+const V=`Sparkling water|氣泡水|🫧|d
+Tap water|自來水|🚰|d
+Iced tea|冰茶|🧊|d
+Refill|續杯|🔄|d
+Beer|啤酒|🍺|d
+Red wine|紅酒|🍷|d
+Juice|果汁|🧃|d
+Coffee|咖啡|☕|d
+Milk|牛奶|🥛|d
+Steak|牛排|🥩|f
+Pasta|義大利麵|🍝|f
+Soup|湯|🍲|f
+Fried rice|炒飯|🍚|f
+Salad|沙拉|🥗|f
+Chicken|雞肉|🍗|f
+Pork|豬肉|🐖|f
+Beef|牛肉|🐄|f
+Fish|魚|🐟|f
+Bread|麵包|🍞|f
+Dessert|甜點|🍰|f
+Sandwich|三明治|🥪|f
+Grilled|炭烤的|🔥|c
+Fried|油炸的|🍟|c
+Steamed|蒸的|♨️|c
+Baked|烘烤的|🥖|c
+Raw|生的|🥬|c
+Boiled|水煮的|🫕|c
+Smoked|煙燻的|💨|c
+Medium rare|三分熟|🥩|c
+Well done|全熟|🍖|c
+Spicy|辣|🌶️|t
+Sweet|甜|🍬|t
+Sour|酸|🍋|t
+Salty|鹹|🧂|t
+Bitter|苦|🫒|t
+Mild|清淡|🥣|t
+Greasy|油膩|🍳|t
+Crispy|酥脆|🥓|t
+Peanuts|花生|🥜|a
+Shellfish|貝類海鮮|🦐|a
+Gluten|麩質|🌾|a
+Dairy|乳製品|🧀|a
+Eggs|蛋|🥚|a
+Tree nuts|堅果|🌰|a
+Vegetarian|素食|🥦|a
+Vegan|純素|🌱|a
+Allergy|過敏|⚠️|a
+Menu|菜單|📋|r
+Bill|帳單|🧾|r
+Tip|小費|💵|r
+Reservation|訂位|📅|r
+Takeaway|外帶|🥡|r
+Napkin|餐巾紙|🧻|r
+Fork|叉子|🍴|r
+Chopsticks|筷子|🥢|r
+Spoon|湯匙|🥄|r
+Knife|刀子|🔪|r
+Waiter|服務生|🤵|r`.split('\n').map(l=>{const[en,zh,e,t]=l.split('|');return{en,zh,e,t}});
+const TN={d:'🥤 飲料',f:'🍽️ 主餐與食材',c:'🔥 烹調方式',t:'👅 口味與狀態',a:'⚠️ 過敏與限制',r:'🧾 餐廳用語'};
+const FD=['🍩','🍕','🍣','🥐','🍜','🧋','🍔','🌮'],OB=['🚧','🛢️','🪨'];
+const $=id=>document.getElementById(id),cv=$('c'),x=cv.getContext('2d');
+const ls={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let P=ls.get('prog',{}),best=ls.get('best',0);
+const shuf=a=>a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(v=>v[1]);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const vib=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}};
+const LX=[80,180,280],PY=520;
+let st='menu',m,score,hp,ln,px,inv,boost,gt,nx,off,items,gate,miss,msg={t:0},ok,tot;
+
+function pickWord(){
+  const w=V.map(v=>{const p=P[v.en]||{s:0,w:0};return p.s>=3?.3:1+(p.w?2:0)});
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<V.length;i++){if((r-=w[i])<=0)return V[i]}
+  return V[0];
+}
+function mkGate(){
+  const q=pickWord(),ds=shuf(V.filter(v=>v.t==q.t&&v!==q)).slice(0,2),opts=shuf([q,...ds]);
+  return{y:-40,q,opts,ans:opts.indexOf(q)};
+}
+function spawn(){
+  const L=shuf([0,1,2]),n=Math.random()<.35?2:1;
+  for(let i=0;i<n;i++)items.push({x:LX[L[i]],y:-40,o:1,e:pick(OB)});
+  if(Math.random()<.7)items.push({x:LX[L[2]],y:-40,e:pick(FD)});
+}
+const say=(t,c)=>msg={t:1,s:t,c};
+function start(){
+  m=0;score=0;hp=3;ln=1;px=LX[1];inv=0;boost=0;gt=0;nx=200;off=0;items=[];gate=null;miss={};ok=0;tot=0;
+  st='play';['menu','over','sheet','pause'].forEach(i=>$(i).classList.add('hide'));
+}
+function end(){
+  st='over';const d=Math.floor(m),nb=d>best;if(nb)best=d;ls.set('best',best);ls.set('prog',P);
+  const ms=Object.values(miss).map(v=>`<div class=r><span>${v.e} ${v.en}</span><span>${v.zh}</span></div>`).join('');
+  $('over').innerHTML=`<h1>🏁 結束</h1><div>行駛 <b>${d}</b> m　得分 <b>${Math.floor(score)}</b></div>${nb?'<div>🎉 新紀錄！</div>':''}<div>單字答對 ${ok} / ${tot}</div>${ms?'<h3>這局答錯的單字</h3><div class=w>'+ms+'</div>':''}<button id=a1>再玩一次</button><button class=s id=a2>回選單</button>`;
+  $('over').classList.remove('hide');$('a1').onclick=start;$('a2').onclick=menu;
+}
+function menu(){st='menu';$('best').textContent=best;$('over').classList.add('hide');$('menu').classList.remove('hide')}
+function sheet(){
+  let h='<h1>📖 點餐小抄</h1><div class=w>';
+  for(const t in TN){h+=`<h3>${TN[t]}</h3>`+V.filter(v=>v.t==t).map(v=>`<div class=r><span>${v.e} ${v.en}</span><span>${v.zh}</span></div>`).join('')}
+  $('sheet').innerHTML=h+'</div><button id=bk style="margin:16px 0">返回</button>';
+  $('sheet').classList.remove('hide');$('bk').onclick=()=>$('sheet').classList.add('hide');
+}
+function upd(dt){
+  inv=Math.max(0,inv-dt);boost=Math.max(0,boost-dt);
+  const v=(200+Math.min(m,1500)*.12)*(boost>0?1.4:1);
+  m+=v*dt/20;score+=v*dt/40*(boost>0?2:1);
+  px+=(LX[ln]-px)*Math.min(1,dt*14);off=(off+v*dt)%60;
+  if(!gate){gt+=dt;if(gt>18){gate=mkGate();gt=0}}
+  if(!gate&&(nx-=v*dt)<=0){nx=280-Math.min(m,1000)*.08;spawn()}
+  for(const it of items){
+    it.y+=v*dt;
+    if(!it.d&&Math.abs(it.y-PY)<36&&Math.abs(it.x-px)<46){
+      it.d=1;
+      if(it.o){if(!inv){hp--;inv=1.5;vib(200);say('💥','#f55');if(hp<=0)return end()}}
+      else{score+=50;vib(15)}
+    }
+  }
+  items=items.filter(i=>i.y<700&&!i.d);
+  if(gate){
+    gate.y+=Math.min(v,170)*dt;
+    if(gate.y>PY+20){
+      const g=gate.q,p=P[g.en]||(P[g.en]={s:0,w:0});tot++;
+      if(ln==gate.ans){p.s++;ok++;boost=4;score+=200;say('✔ 氮氣加速！','#4f4')}
+      else{p.s=0;p.w++;score=Math.max(0,score-150);miss[g.en]=g;say('✘ '+g.zh,'#fa4');vib(80)}
+      ls.set('prog',P);gate=null;
+    }
+  }
+}
+function draw(){
+  x.fillStyle='#1a1a2e';x.fillRect(0,0,360,640);
+  x.fillStyle=boost>0?'#3a2a44':'#2a2a44';x.fillRect(30,0,300,640);
+  x.fillStyle='#ffffff55';
+  for(let i=1;i<3;i++)for(let y=-60+off;y<640;y+=60)x.fillRect(28+i*100,y,4,30);
+  x.fillStyle='#ff8a3d';x.fillRect(26,0,4,640);x.fillRect(330,0,4,640);
+  if(st=='menu'||!items)return;
+  x.textAlign='center';x.textBaseline='middle';x.font='38px serif';
+  items.forEach(i=>x.fillText(i.e,i.x,i.y));
+  if(gate){
+    gate.opts.forEach((o,i)=>{x.fillStyle='#3b82f6cc';x.fillRect(34+i*100,gate.y-35,92,70);x.fillStyle='#fff';x.font='bold 20px sans-serif';x.fillText(o.zh,80+i*100,gate.y)});
+    x.fillStyle='#000b';x.fillRect(30,46,300,56);x.fillStyle='#fff';x.font='bold 26px sans-serif';x.fillText(gate.q.e+' '+gate.q.en,180,74);
+  }
+  if(!(inv>0&&Math.floor(inv*10)%2)){
+    x.fillStyle=boost>0?'#ffd23d':'#ff3b5c';x.fillRect(px-22,PY-38,44,76);
+    x.fillStyle='#9be7ff';x.fillRect(px-16,PY-22,32,18);x.fillStyle='#111';x.fillRect(px-26,PY-30,6,16);x.fillRect(px+20,PY-30,6,16);x.fillRect(px-26,PY+14,6,16);x.fillRect(px+20,PY+14,6,16);
+  }
+  x.textAlign='left';x.font='bold 18px sans-serif';x.fillStyle='#fff';
+  x.fillText('❤️'.repeat(Math.max(hp,0)),12,22);
+  x.textAlign='right';x.fillText(Math.floor(m)+' m　'+Math.floor(score)+' 分',350,22);
+  if(msg.t>0){msg.t-=.03;x.textAlign='center';x.font='bold 28px sans-serif';x.fillStyle=msg.c;x.fillText(msg.s,180,320)}
+}
+let last=0;
+function loop(t){
+  requestAnimationFrame(loop);
+  if(t-last<33)return;
+  const dt=Math.min((t-last)/1000,.05);last=t;
+  if(st=='play')upd(dt);
+  draw();
+}
+const go=d=>{ln=Math.max(0,Math.min(2,ln+d))};
+let sx=0;
+addEventListener('pointerdown',e=>{sx=e.clientX});
+addEventListener('pointerup',e=>{if(st!='play')return;const d=e.clientX-sx;go(Math.abs(d)>40?Math.sign(d):(e.clientX<innerWidth/2?-1:1))});
+addEventListener('keydown',e=>{if(st!='play')return;if(e.key=='ArrowLeft')go(-1);if(e.key=='ArrowRight')go(1)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&st=='play'){st='pause';$('pause').classList.remove('hide')}});
+$('go').onclick=start;$('sh').onclick=sheet;
+$('res').onclick=()=>{$('pause').classList.add('hide');st='play'};
+$('best').textContent=best;
+requestAnimationFrame(loop);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>

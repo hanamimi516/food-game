@@ -10,29 +10,31 @@
 html,body{margin:0;height:100%;background:#0f0f1e;color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
 #app{position:relative;width:100%;height:100%}
 canvas{width:100%;height:100%;object-fit:contain;display:block;touch-action:none}
-.ov{position:absolute;inset:0;background:#1a1a2ef2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;overflow:auto}
+.ov{position:absolute;inset:0;background:#1a1a2ef2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;text-align:center;overflow:auto}
 .ov.hide{display:none}
 #sheet{justify-content:flex-start}
 button{font-size:20px;padding:12px 30px;border:0;border-radius:12px;background:#ff8a3d;color:#fff}
 button.s{background:#3b3b63}
+button.t{font-size:15px;padding:8px 14px;background:#2d4a63}
 h1{margin:0;font-size:34px}
 h3{margin:14px 0 4px;color:#ff8a3d;text-align:left;width:100%}
-.r{display:flex;justify-content:space-between;width:100%;padding:6px 4px;border-bottom:1px solid #fff2;font-size:17px}
+.r{display:flex;justify-content:space-between;gap:8px;width:100%;padding:6px 4px;border-bottom:1px solid #fff2;font-size:17px;text-align:left}
 .w{width:100%;max-width:360px}
 </style></head>
 <body><div id="app">
-<canvas id="c" width="360" height="640"></canvas>
-<div class="ov" id="menu"><h1>🏎️ 美食賽車</h1><p>點左/右半邊或滑動換車道<br>吃美食加分，閃開路障<br>看到單字閘門，開進正確中文！</p>
+<canvas id="c" width="720" height="1280"></canvas>
+<div class="ov" id="menu"><h1>🏎️ 美食賽車</h1><p>點左/右半邊或滑動換車道<br>吃美食加分，閃開路障<br>開進正確的單字閘門，氮氣衝刺 4 秒無敵！<br>每 500 公尺換一個美食區域，越跑越難</p>
 <div>🏆 最高里程 <b id="best">0</b> m</div>
-<button id="go">開始</button><button class="s" id="sh">📖 點餐小抄</button></div>
+<button id="go">開始</button><button class="s" id="sh">📖 點餐小抄</button>
+<div style="font-size:14px;color:#aab">🧪 測試後期關卡（不計入紀錄）</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="t" data-m="1000">1000m</button><button class="t" data-m="2000">2000m</button><button class="t" data-m="3000">3000m</button><button class="t" data-m="4500">4500m</button></div></div>
 <div class="ov hide" id="sheet"></div>
 <div class="ov hide" id="over"></div>
 <div class="ov hide" id="pause"><h1>⏸ 暫停</h1><button id="res">繼續</button></div>
 </div>
 <script>
-// 單字庫：英文|中文|emoji|分類
-const V=`Sparkling water|氣泡水|🫧|d
-Tap water|自來水|🚰|d
+// 單字庫：英文|中文|emoji|分類（已避開「Café Talk 咖啡館」用過的單字）
+const V=`Tap water|自來水|🚰|d
 Iced tea|冰茶|🧊|d
 Refill|續杯|🔄|d
 Beer|啤酒|🍺|d
@@ -40,18 +42,23 @@ Red wine|紅酒|🍷|d
 Juice|果汁|🧃|d
 Coffee|咖啡|☕|d
 Milk|牛奶|🥛|d
+White wine|白酒|🥂|d
+Cocktail|雞尾酒|🍸|d
+Soda|汽水|🥤|d
+Whiskey|威士忌|🥃|d
+Champagne|香檳|🍾|d
+Mineral water|礦泉水|💧|d
+Green tea|綠茶|🍵|d
+Bubble tea|珍珠奶茶|🧋|d
 Steak|牛排|🥩|f
 Pasta|義大利麵|🍝|f
-Soup|湯|🍲|f
 Fried rice|炒飯|🍚|f
-Salad|沙拉|🥗|f
 Chicken|雞肉|🍗|f
 Pork|豬肉|🐖|f
 Beef|牛肉|🐄|f
 Fish|魚|🐟|f
 Bread|麵包|🍞|f
 Dessert|甜點|🍰|f
-Sandwich|三明治|🥪|f
 Grilled|炭烤的|🔥|c
 Fried|油炸的|🍟|c
 Steamed|蒸的|♨️|c
@@ -61,6 +68,12 @@ Boiled|水煮的|🫕|c
 Smoked|煙燻的|💨|c
 Medium rare|三分熟|🥩|c
 Well done|全熟|🍖|c
+Roasted|烤的（肉類）|🍗|c
+Stir-fried|快炒的|🥘|c
+Braised|紅燒的|🍖|c
+Pickled|醃漬的|🥒|c
+Stewed|燉煮的|🍲|c
+Marinated|醃製的|🥩|c
 Spicy|辣|🌶️|t
 Sweet|甜|🍬|t
 Sour|酸|🍋|t
@@ -69,6 +82,13 @@ Bitter|苦|🫒|t
 Mild|清淡|🥣|t
 Greasy|油膩|🍳|t
 Crispy|酥脆|🥓|t
+Juicy|多汁的|💦|t
+Tender|軟嫩的|🥩|t
+Chewy|有嚼勁的|🍬|t
+Creamy|綿密的|🍦|t
+Bland|沒味道的|😐|t
+Savory|鹹香的|🧂|t
+Tangy|酸爽的|🍋|t
 Peanuts|花生|🥜|a
 Shellfish|貝類海鮮|🦐|a
 Gluten|麩質|🌾|a
@@ -78,73 +98,167 @@ Tree nuts|堅果|🌰|a
 Vegetarian|素食|🥦|a
 Vegan|純素|🌱|a
 Allergy|過敏|⚠️|a
+Lactose|乳糖|🥛|a
+Halal|清真的|☪️|a
+Kosher|猶太潔食|✡️|a
+Gluten-free|無麩質|🌾|a
+Sesame|芝麻|🫘|a
+Wheat|小麥|🌾|a
+Organic|有機的|🌿|a
+Calories|卡路里|🔥|a
 Menu|菜單|📋|r
 Bill|帳單|🧾|r
 Tip|小費|💵|r
 Reservation|訂位|📅|r
-Takeaway|外帶|🥡|r
-Napkin|餐巾紙|🧻|r
 Fork|叉子|🍴|r
 Chopsticks|筷子|🥢|r
 Spoon|湯匙|🥄|r
 Knife|刀子|🔪|r
-Waiter|服務生|🤵|r`.split('\n').map(l=>{const[en,zh,e,t]=l.split('|');return{en,zh,e,t}});
-const TN={d:'🥤 飲料',f:'🍽️ 主餐與食材',c:'🔥 烹調方式',t:'👅 口味與狀態',a:'⚠️ 過敏與限制',r:'🧾 餐廳用語'};
-const FD=['🍩','🍕','🍣','🥐','🍜','🧋','🍔','🌮'],OB=['🚧','🛢️','🪨'];
-const $=id=>document.getElementById(id),cv=$('c'),x=cv.getContext('2d');
+Waiter|服務生|🤵|r
+Plate|盤子|🍽️|r
+Bowl|碗|🥣|r
+Glass|玻璃杯|🥂|r
+Pitcher|水壺|🫗|r
+Teapot|茶壺|🫖|r
+Cash|現金|💵|b
+Credit card|信用卡|💳|b
+Change|找零|🪙|b
+Service charge|服務費|🧾|b
+Tax|稅金|🏷️|b
+Discount|折扣|🔖|b
+Split the bill|分開付|➗|b
+Appetizer|開胃菜|🥨|o
+Main course|主菜|🍽️|o
+Side dish|配菜|🥗|o
+Daily special|今日特餐|⭐|o
+Set meal|套餐|🍱|o
+Buffet|自助餐|🥘|o
+Leftovers|剩菜|🥡|o
+Dumplings|餃子|🥟|s
+Noodles|麵條|🍜|s
+Skewer|串燒|🍢|s
+Spring roll|春捲|🌯|s
+Sushi|壽司|🍣|s
+Curry|咖哩|🍛|s
+Kebab|烤肉串|🥙|s
+Taco|塔可餅|🌮|s
+Burrito|墨西哥捲餅|🫔|s
+Pizza|披薩|🍕|s
+Burger|漢堡|🍔|s
+Fries|薯條|🍟|s
+Hot dog|熱狗|🌭|s
+Meatball|肉丸|🧆|s
+Tomato|番茄|🍅|v
+Potato|馬鈴薯|🥔|v
+Onion|洋蔥|🧅|v
+Garlic|大蒜|🧄|v
+Carrot|紅蘿蔔|🥕|v
+Mushroom|蘑菇|🍄|v
+Cabbage|高麗菜|🥬|v
+Corn|玉米|🌽|v
+Cucumber|小黃瓜|🥒|v
+Broccoli|花椰菜|🥦|v
+Apple|蘋果|🍎|u
+Banana|香蕉|🍌|u
+Grapes|葡萄|🍇|u
+Strawberry|草莓|🍓|u
+Mango|芒果|🥭|u
+Pineapple|鳳梨|🍍|u
+Watermelon|西瓜|🍉|u
+Peach|桃子|🍑|u
+Salt|鹽|🧂|m
+Soy sauce|醬油|🍶|m
+Vinegar|醋|🫗|m
+Olive oil|橄欖油|🫒|m
+Ketchup|番茄醬|🍅|m
+Mustard|芥末醬|🟡|m
+Chili sauce|辣椒醬|🌶️|m
+Butter|奶油|🧈|m
+Jam|果醬|🍓|m
+Lamb|羊肉|🐑|p
+Duck|鴨肉|🦆|p
+Turkey|火雞肉|🦃|p
+Bacon|培根|🥓|p
+Sausage|香腸|🌭|p
+Shrimp|蝦子|🦐|p
+Crab|螃蟹|🦀|p
+Squid|魷魚|🦑|p
+Oyster|牡蠣|🦪|p
+Lobster|龍蝦|🦞|p`.split('\n').map(l=>{const[en,zh,e,t]=l.split('|');return{en,zh,e,t}});
+const TN={s:'🍜 街頭小吃與異國料理',t:'👅 口味與口感',v:'🥬 蔬菜',u:'🍎 水果',m:'🧂 調味料',o:'📋 點餐與餐點類型',f:'🍽️ 主餐',p:'🥩 肉類與海鮮',c:'🔥 烹調方式',d:'🥤 飲料與酒類',a:'⚠️ 過敏與飲食限制',b:'💳 結帳與付款',r:'🧾 餐桌與餐廳用語'};
+const ZN=[
+{n:'🍜 夜市小吃',t:['s','t'],bg:'#2a1a2e',rd:'#3a2a44',ed:'#ff8a3d',dc:['🏮','🍢'],fd:['🍢','🥟','🍜','🧆']},
+{n:'🥬 傳統市場',t:['v','u','m'],bg:'#12271b',rd:'#2a3a2e',ed:'#6fd99a',dc:['🌳','🧺'],fd:['🍎','🍌','🍇','🥕']},
+{n:'🍽️ 餐廳點餐',t:['o','f','p','c'],bg:'#2b1d14',rd:'#3d2e25',ed:'#e0a35c',dc:['🕯️','🪴'],fd:['🥩','🍗','🍝','🍞']},
+{n:'🥂 飲料與酒類',t:['d'],bg:'#1d1a3a',rd:'#2d2a4d',ed:'#b39ce8',dc:['🍷','✨'],fd:['🥂','🍸','🧋','🍵']},
+{n:'⚠️ 飲食限制',t:['a'],bg:'#341a1a',rd:'#452b2b',ed:'#ff6b6b',dc:['⚠️','🚫'],fd:['🥜','🌾','🥛','🥦']},
+{n:'🧾 結帳與服務',t:['r','b'],bg:'#102a2e',rd:'#213d41',ed:'#5ad1d1',dc:['💡','🛎️'],fd:['💵','💳','🧾','🪙']}];
+const OB=['🚧','🛢️','🪨'];
+const $=id=>document.getElementById(id),cv=$('c'),x=cv.getContext('2d');x.scale(2,2);
 const ls={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let P=ls.get('prog',{}),best=ls.get('best',0);
 const shuf=a=>a.map(v=>[Math.random(),v]).sort((p,q)=>p[0]-q[0]).map(v=>v[1]);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const vib=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}};
 const LX=[80,180,280],PY=520;
-let st='menu',m,score,hp,ln,px,inv,boost,gt,nx,off,items,gate,miss,msg={t:0},ok,tot;
+const zOf=()=>ZN[Math.floor(m/500)%6];
+let st='menu',m=0,score,hp,ln,px,inv,boost,gt,nt,off,items=[],gate,miss,msg={t:0},zb={t:0},ok,tot,combo,zl,testRun=false,S0=0;
 
-function pickWord(){
-  const w=V.map(v=>{const p=P[v.en]||{s:0,w:0};return p.s>=3?.3:1+(p.w?2:0)});
+function pickWord(ty){
+  const L=V.filter(v=>v.t===ty),w=L.map(v=>{const p=P[v.en]||{s:0,w:0};return p.s>=3?.3:1+(p.w?2:0)});
   let r=Math.random()*w.reduce((a,b)=>a+b,0);
-  for(let i=0;i<V.length;i++){if((r-=w[i])<=0)return V[i]}
-  return V[0];
+  for(let i=0;i<L.length;i++){if((r-=w[i])<=0)return L[i]}
+  return L[0];
 }
 function mkGate(){
-  const q=pickWord(),ds=shuf(V.filter(v=>v.t==q.t&&v!==q)).slice(0,2),opts=shuf([q,...ds]);
-  return{y:-40,q,opts,ans:opts.indexOf(q)};
+  const q=pickWord(pick(zOf().t)),ds=shuf(V.filter(v=>v.t===q.t&&v!==q&&v.zh!==q.zh)).slice(0,2),opts=shuf([q,...ds]);
+  return{y:-40,q,opts,ans:opts.indexOf(q),rev:m>=1500&&Math.random()<.5};
 }
 function spawn(){
-  const L=shuf([0,1,2]),n=Math.random()<.35?2:1;
-  for(let i=0;i<n;i++)items.push({x:LX[L[i]],y:-40,o:1,e:pick(OB)});
-  if(Math.random()<.7)items.push({x:LX[L[2]],y:-40,e:pick(FD)});
+  const z=zOf(),L=shuf([0,1,2]),ks=['s','s','s'];
+  if(m>=600)ks.push('w','w');if(m>=1200)ks.push('m','m');if(m>=2000)ks.push('b');
+  const k=pick(ks);let food=Math.random()<.7;
+  if(k==='w'){[0,1,2].filter(i=>i!==L[0]).forEach(i=>items.push({x:LX[i],y:-40,o:1,e:'🚧'}));if(food)items.push({x:LX[L[0]],y:-40,e:pick(z.fd)});food=false}
+  else if(k==='m'){const a=L[0];items.push({x:LX[a],y:-40,o:1,e:'🚕',mv:a===1?pick([0,2]):1})}
+  else if(k==='b'){items.push({x:LX[L[0]],y:-60,o:1,e:'🏍️',vm:1.35})}
+  else{const n=Math.random()<.35?2:1;for(let i=0;i<n;i++)items.push({x:LX[L[i]],y:-40,o:1,e:pick(OB)})}
+  if(food){if(hp<3&&Math.random()<.12)items.push({x:LX[L[2]],y:-40,h:1,e:'❤️'});else items.push({x:LX[L[2]],y:-40,e:pick(z.fd)})}
 }
 const say=(t,c)=>msg={t:1,s:t,c};
-function start(){
-  m=0;score=0;hp=3;ln=1;px=LX[1];inv=0;boost=0;gt=0;nx=200;off=0;items=[];gate=null;miss={};ok=0;tot=0;
+function start(s0){
+  S0=typeof s0==='number'?s0:0;testRun=S0>0;
+  m=S0;score=0;hp=3;ln=1;px=LX[1];inv=0;boost=0;gt=6;nt=1;off=0;items=[];gate=null;miss={};ok=0;tot=0;combo=0;zl=-1;
   st='play';['menu','over','sheet','pause'].forEach(i=>$(i).classList.add('hide'));
 }
 function end(){
-  st='over';const d=Math.floor(m),nb=d>best;if(nb)best=d;ls.set('best',best);ls.set('prog',P);
+  st='over';const d=Math.floor(m),nb=!testRun&&d>best;
+  if(!testRun){if(nb)best=d;ls.set('best',best);ls.set('prog',P)}
   const ms=Object.values(miss).map(v=>`<div class=r><span>${v.e} ${v.en}</span><span>${v.zh}</span></div>`).join('');
-  $('over').innerHTML=`<h1>🏁 結束</h1><div>行駛 <b>${d}</b> m　得分 <b>${Math.floor(score)}</b></div>${nb?'<div>🎉 新紀錄！</div>':''}<div>單字答對 ${ok} / ${tot}</div>${ms?'<h3>這局答錯的單字</h3><div class=w>'+ms+'</div>':''}<button id=a1>再玩一次</button><button class=s id=a2>回選單</button>`;
-  $('over').classList.remove('hide');$('a1').onclick=start;$('a2').onclick=menu;
+  $('over').innerHTML=`<h1>🏁 結束</h1>${testRun?'<div>🧪 測試模式（不計入紀錄）</div>':''}<div>行駛 <b>${d}</b> m　得分 <b>${Math.floor(score)}</b></div><div>最後區域：${zOf().n}</div>${nb?'<div>🎉 新紀錄！</div>':''}<div>單字答對 ${ok} / ${tot}</div>${ms?'<h3>這局答錯的單字</h3><div class=w>'+ms+'</div>':''}<button id=a1>再玩一次</button><button class=s id=a2>回選單</button>`;
+  $('over').classList.remove('hide');$('a1').onclick=()=>start(S0);$('a2').onclick=menu;
 }
 function menu(){st='menu';$('best').textContent=best;$('over').classList.add('hide');$('menu').classList.remove('hide')}
 function sheet(){
-  let h='<h1>📖 點餐小抄</h1><div class=w>';
+  let h=`<h1>📖 點餐小抄</h1><div>共 ${V.length} 個單字</div><div class=w>`;
   for(const t in TN){h+=`<h3>${TN[t]}</h3>`+V.filter(v=>v.t==t).map(v=>`<div class=r><span>${v.e} ${v.en}</span><span>${v.zh}</span></div>`).join('')}
   $('sheet').innerHTML=h+'</div><button id=bk style="margin:16px 0">返回</button>';
-  $('sheet').classList.remove('hide');$('bk').onclick=()=>$('sheet').classList.add('hide');
+  $('sheet').classList.remove('hide');$('sheet').scrollTop=0;$('bk').onclick=()=>$('sheet').classList.add('hide');
 }
 function upd(dt){
-  inv=Math.max(0,inv-dt);boost=Math.max(0,boost-dt);
-  const v=(200+Math.min(m,1500)*.12)*(boost>0?1.4:1);
+  inv=Math.max(0,inv-dt);const pb=boost;boost=Math.max(0,boost-dt);if(pb>0&&boost<=0)inv=Math.max(inv,1.2);
+  const base=200+Math.min(m,3000)*.1+Math.min(Math.max(m-3000,0),3000)*.03,v=base*(boost>0?1.4:1);
   m+=v*dt/20;score+=v*dt/40*(boost>0?2:1);
-  px+=(LX[ln]-px)*Math.min(1,dt*14);off=(off+v*dt)%60;
-  if(!gate){gt+=dt;if(gt>18){gate=mkGate();gt=0}}
-  if(!gate&&(nx-=v*dt)<=0){nx=280-Math.min(m,1000)*.08;spawn()}
+  const z=Math.floor(m/500);if(z!==zl){zl=z;zb={t:2.4,s:ZN[z%6].n+(z>=6?'　第'+(Math.floor(z/6)+1)+'輪':'')}}
+  px+=(LX[ln]-px)*Math.min(1,dt*14);off=(off+v*dt)%120;
+  if(!gate){gt+=dt;if(gt>Math.max(11,18-Math.floor(m/500)*.8)){gate=mkGate();gt=0}}
+  if(!gate&&(nt-=dt)<=0){nt=Math.max(.55,1.3-m*.00025)*(.9+Math.random()*.2);spawn()}
   for(const it of items){
-    it.y+=v*dt;
+    it.y+=v*dt*(it.vm||1);
+    if(it.mv!=null&&it.y>140){const d=LX[it.mv]-it.x;it.x+=Math.sign(d)*Math.min(Math.abs(d),260*dt)}
     if(!it.d&&Math.abs(it.y-PY)<36&&Math.abs(it.x-px)<46){
       it.d=1;
-      if(it.o){if(!inv){hp--;inv=1.5;vib(200);say('💥','#f55');if(hp<=0)return end()}}
+      if(it.h){hp=Math.min(3,hp+1);say('❤️ +1','#ff6b8a');vib(30)}
+      else if(it.o){if(boost>0){score+=30;vib(30);say('💥 撞飛！+30','#ffd23d')}else if(!inv){hp--;inv=1.5;vib(200);say('💥','#f55');if(hp<=0)return end()}}
       else{score+=50;vib(15)}
     }
   }
@@ -153,33 +267,48 @@ function upd(dt){
     gate.y+=Math.min(v,170)*dt;
     if(gate.y>PY+20){
       const g=gate.q,p=P[g.en]||(P[g.en]={s:0,w:0});tot++;
-      if(ln==gate.ans){p.s++;ok++;boost=4;score+=200;say('✔ 氮氣加速！','#4f4')}
-      else{p.s=0;p.w++;score=Math.max(0,score-150);miss[g.en]=g;say('✘ '+g.zh,'#fa4');vib(80)}
-      ls.set('prog',P);gate=null;
+      if(ln==gate.ans){p.s++;ok++;combo++;boost=4;score+=200+Math.min(combo-1,5)*50;say(combo>1?'✔ 連對 ×'+combo+'！無敵衝刺':'✔ 氮氣無敵衝刺！','#4f4')}
+      else{p.s=0;p.w++;combo=0;score=Math.max(0,score-150);miss[g.en]=g;say('✘ '+(gate.rev?g.en:g.zh),'#fa4');vib(80)}
+      if(!testRun)ls.set('prog',P);gate=null;
     }
   }
 }
-function draw(){
-  x.fillStyle='#1a1a2e';x.fillRect(0,0,360,640);
-  x.fillStyle=boost>0?'#3a2a44':'#2a2a44';x.fillRect(30,0,300,640);
-  x.fillStyle='#ffffff55';
-  for(let i=1;i<3;i++)for(let y=-60+off;y<640;y+=60)x.fillRect(28+i*100,y,4,30);
-  x.fillStyle='#ff8a3d';x.fillRect(26,0,4,640);x.fillRect(330,0,4,640);
-  if(st=='menu'||!items)return;
-  x.textAlign='center';x.textBaseline='middle';x.font='38px serif';
-  items.forEach(i=>x.fillText(i.e,i.x,i.y));
-  if(gate){
-    gate.opts.forEach((o,i)=>{x.fillStyle='#3b82f6cc';x.fillRect(34+i*100,gate.y-35,92,70);x.fillStyle='#fff';x.font='bold 20px sans-serif';x.fillText(o.zh,80+i*100,gate.y)});
-    x.fillStyle='#000b';x.fillRect(30,46,300,56);x.fillStyle='#fff';x.font='bold 26px sans-serif';x.fillText(gate.q.e+' '+gate.q.en,180,74);
+function fitTxt(t,w,mx){
+  for(let s=mx;s>=11;s--){
+    x.font='bold '+s+'px sans-serif';if(x.measureText(t).width<=w)return{L:[t],s};
+    const wd=t.split(' ');
+    if(wd.length>1)for(let k=1;k<wd.length;k++){const a=wd.slice(0,k).join(' '),b=wd.slice(k).join(' ');if(x.measureText(a).width<=w&&x.measureText(b).width<=w)return{L:[a,b],s}}
   }
+  return{L:[t],s:11};
+}
+function draw(){
+  const z=zOf();
+  x.fillStyle=z.bg;x.fillRect(0,0,360,640);x.fillStyle=z.rd;x.fillRect(30,0,300,640);
+  x.fillStyle='#ffffff44';for(let i=1;i<3;i++)for(let y=-60+off%60;y<640;y+=60)x.fillRect(28+i*100,y,4,30);
+  x.fillStyle=z.ed;x.fillRect(26,0,4,640);x.fillRect(330,0,4,640);
+  x.textAlign='center';x.textBaseline='middle';x.font='22px serif';
+  for(let y=-60+off%120;y<680;y+=120){x.fillText(z.dc[0],13,y);x.fillText(z.dc[1],347,y+60)}
+  if(st=='menu')return;
+  if(zb.t>0){zb.t-=.033;x.globalAlpha=Math.min(1,zb.t);x.font='bold 30px sans-serif';x.lineWidth=5;x.strokeStyle='#000';x.strokeText(zb.s,180,170);x.fillStyle='#fff';x.fillText(zb.s,180,170);x.globalAlpha=1}
+  x.font='38px serif';
+  items.forEach(i=>{x.fillText(i.e,i.x,i.y);if(i.mv!=null&&i.y<140){x.font='bold 20px sans-serif';x.fillStyle='#ffd23d';x.fillText('⇄',i.x,i.y-28);x.font='38px serif'}});
+  if(gate){
+    gate.opts.forEach((o,i)=>{x.fillStyle='#3b82f6cc';x.fillRect(34+i*100,gate.y-35,92,70);x.fillStyle='#fff';const f=fitTxt(gate.rev?o.en:o.zh,84,20);x.font='bold '+f.s+'px sans-serif';f.L.forEach((t,k)=>x.fillText(t,80+i*100,gate.y+(k-(f.L.length-1)/2)*(f.s+2)))});
+    x.fillStyle='#000b';x.fillRect(30,46,300,56);x.fillStyle='#fff';const q=gate.rev?gate.q.zh:gate.q.en,f=fitTxt(q,230,26);x.font='bold '+f.s+'px sans-serif';x.fillText(gate.q.e+' '+f.L.join(' '),180,74);
+  }
+  if(boost>0){const gl=x.createRadialGradient(px,PY,8,px,PY,58);gl.addColorStop(0,'rgba(255,210,61,.5)');gl.addColorStop(1,'rgba(255,210,61,0)');x.fillStyle=gl;x.fillRect(px-64,PY-64,128,128);x.fillStyle='#ff9d2e';x.beginPath();x.moveTo(px-14,PY+38);x.lineTo(px,PY+66+Math.random()*14);x.lineTo(px+14,PY+38);x.fill();x.fillStyle='#fff3a0';x.beginPath();x.moveTo(px-7,PY+38);x.lineTo(px,PY+54+Math.random()*8);x.lineTo(px+7,PY+38);x.fill()}
   if(!(inv>0&&Math.floor(inv*10)%2)){
     x.fillStyle=boost>0?'#ffd23d':'#ff3b5c';x.fillRect(px-22,PY-38,44,76);
     x.fillStyle='#9be7ff';x.fillRect(px-16,PY-22,32,18);x.fillStyle='#111';x.fillRect(px-26,PY-30,6,16);x.fillRect(px+20,PY-30,6,16);x.fillRect(px-26,PY+14,6,16);x.fillRect(px+20,PY+14,6,16);
   }
   x.textAlign='left';x.font='bold 18px sans-serif';x.fillStyle='#fff';
   x.fillText('❤️'.repeat(Math.max(hp,0)),12,22);
-  x.textAlign='right';x.fillText(Math.floor(m)+' m　'+Math.floor(score)+' 分',350,22);
-  if(msg.t>0){msg.t-=.03;x.textAlign='center';x.font='bold 28px sans-serif';x.fillStyle=msg.c;x.fillText(msg.s,180,320)}
+  if(boost>0){x.fillStyle='#ffd23d';x.fillText('🔥 無敵 '+boost.toFixed(1)+'s',12,46);x.fillStyle='#fff'}
+  x.font='bold 14px sans-serif';x.fillStyle=z.ed;x.fillText(z.n+(testRun?'　🧪':''),12,628);
+  x.textAlign='right';x.font='bold 18px sans-serif';x.fillStyle='#fff';x.fillText(Math.floor(m)+' m　'+Math.floor(score)+' 分',350,22);
+  if(combo>1){x.font='bold 15px sans-serif';x.fillStyle='#ffd23d';x.fillText('COMBO ×'+combo,350,46)}
+  x.textAlign='center';
+  if(msg.t>0){msg.t-=.03;x.font='bold 28px sans-serif';x.fillStyle=msg.c;x.fillText(msg.s,180,320)}
 }
 let last=0;
 function loop(t){
@@ -189,13 +318,14 @@ function loop(t){
   if(st=='play')upd(dt);
   draw();
 }
-const go=d=>{ln=Math.max(0,Math.min(2,ln+d))};
+const mv=d=>{ln=Math.max(0,Math.min(2,ln+d))};
 let sx=0;
 addEventListener('pointerdown',e=>{sx=e.clientX});
-addEventListener('pointerup',e=>{if(st!='play')return;const d=e.clientX-sx;go(Math.abs(d)>40?Math.sign(d):(e.clientX<innerWidth/2?-1:1))});
-addEventListener('keydown',e=>{if(st!='play')return;if(e.key=='ArrowLeft')go(-1);if(e.key=='ArrowRight')go(1)});
+addEventListener('pointerup',e=>{if(st!='play')return;const d=e.clientX-sx;mv(Math.abs(d)>40?Math.sign(d):(e.clientX<innerWidth/2?-1:1))});
+addEventListener('keydown',e=>{if(st!='play')return;if(e.key=='ArrowLeft')mv(-1);if(e.key=='ArrowRight')mv(1)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&st=='play'){st='pause';$('pause').classList.remove('hide')}});
-$('go').onclick=start;$('sh').onclick=sheet;
+$('go').onclick=()=>start();$('sh').onclick=sheet;
+document.querySelectorAll('button.t').forEach(b=>b.onclick=()=>start(+b.dataset.m));
 $('res').onclick=()=>{$('pause').classList.add('hide');st='play'};
 $('best').textContent=best;
 requestAnimationFrame(loop);
